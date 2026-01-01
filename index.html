@@ -54,7 +54,7 @@
                         return './pikafish.wasm';
                     }
                     if (path.endsWith('.nnue')) {
-                        return './pikafish.nnue';
+                        return 'https://github.com/dffge552/xiangqi-pwa/releases/download/v1.0.0/pikafish.nnue';
                     }
                     if (path.endsWith('.data')) {
                         return './pikafish.data';
@@ -98,7 +98,7 @@
                 ALLOW_MEMORY_GROWTH: true,
 
                 // 🔥 關鍵：使用 arguments 傳遞 NNUE 路徑
-                arguments: ['--evalfile=pikafish.nnue']
+                arguments: ['--evalfile=https://github.com/dffge552/xiangqi-pwa/releases/download/v1.0.0/pikafish.nnue']
 
             }).then(function(module) {
                 console.log('🎉 Pikafish WASM 載入完成！');
@@ -114,9 +114,7 @@
                     if (window.xiangqiAI && window.xiangqiAI.wasmReady) {
                         // 嘗試多個路徑
                         const nnuePaths = [
-                            'pikafish.nnue',
-                            './pikafish.nnue',
-                            '/pikafish.nnue'
+                            'https://github.com/dffge552/xiangqi-pwa/releases/download/v1.0.0/pikafish.nnue'
                         ];
 
                         nnuePaths.forEach(path => {
