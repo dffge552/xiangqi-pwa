@@ -16573,6 +16573,9 @@
     /**
      * 🎨 創建 AI 分析按鈕（固定底部，符合原有風格）
      */
+    /**
+     * 🎨 創建 AI 分析按鈕（手機版佔滿整行，放在所有按鈕最底下）
+     */
     function createAIAnalysisButton() {
         // 檢查是否已存在
         if (document.getElementById('ai-analyze-btn')) {
@@ -16582,51 +16585,64 @@
         // 🔥 檢測是否為移動設備
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
+        // 尋找參考按鈕（用來找到按鈕容器）
+        const regretButton = Array.from(document.querySelectorAll('button')).find(btn =>
+            btn.textContent.includes('悔棋') || btn.textContent.includes('undo')
+        );
+
+        const feedbackButton = Array.from(document.querySelectorAll('button')).find(btn =>
+            btn.textContent.includes('問題回報')
+        );
+
+        const settingsButton = Array.from(document.querySelectorAll('button')).find(btn =>
+            btn.textContent.includes('遊戲設置') || btn.textContent.includes('設置')
+        );
+
+        // 找到按鈕容器
+        let buttonContainer = regretButton ? regretButton.parentElement :
+            (feedbackButton ? feedbackButton.parentElement :
+                (settingsButton ? settingsButton.parentElement :
+                    document.getElementById('controls') || document.body));
+
+        const button = document.createElement('button');
+        button.id = 'ai-analyze-btn';
+        button.textContent = '🤖 AI 分析';
+
         if (isMobile) {
-            // === 移動設備：固定在底部 ===
-            const container = document.createElement('div');
-            container.id = 'ai-analyze-container';
-            container.style.cssText = `
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: transparent;
-        z-index: 9999;
-        padding: 0;                    /* ✅ 改成 0 */
-        box-sizing: border-box;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    `;
+            // === 移動設備：佔滿整行 ===
 
-            const button = document.createElement('button');
-            button.id = 'ai-analyze-btn';
-            button.textContent = '🤖 AI 分析';
-            button.style.cssText = `
-        padding: 12px 20px;
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-        margin: 10px 16px;              /* ✅ 改成與上方按鈕一致 */
-        width: calc(100% - 32px);       /* ✅ 減去左右 margin */
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        transition: background-color 0.3s ease;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    `;
-            // hover/active 效果
-            button.addEventListener('mouseenter', () => {
-                if (!button.disabled) button.style.backgroundColor = '#45a049';
-            });
+            // 複製參考按鈕的樣式
+            const referenceButton = regretButton || feedbackButton || settingsButton;
 
-            button.addEventListener('mouseleave', () => {
-                if (!button.disabled) button.style.backgroundColor = '#4CAF50';
-            });
+            if (referenceButton) {
+                button.className = referenceButton.className;
+                button.style.cssText = referenceButton.style.cssText;
+                // ✅ 關鍵：強制設定寬度佔滿整行
+                button.style.width = 'calc(100% - 10px)'; // 減去左右 margin
+                button.style.marginLeft = '5px';
+                button.style.marginRight = '5px';
+                button.style.backgroundColor = '#4CAF50';
+                // ✅ 確保按鈕在最下面（設定 order 或用其他方式）
+                button.style.order = '999'; // 如果容器是 flex，這會讓它排在最後
+            } else {
+                button.style.cssText = `
+                padding: 12px 20px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                margin: 5px;
+                width: calc(100% - 10px);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                transition: background-color 0.3s ease;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+                order: 999;
+            `;
+            }
 
             // 觸控反饋
             button.addEventListener('touchstart', () => {
@@ -16641,36 +16657,15 @@
                 }
             }, { passive: true });
 
-            // 點擊事件
-            button.onclick = () => {
-                if (aiAnalysisManager) {
-                    aiAnalysisManager.analyzePosition();
-                }
-            };
-
-            container.appendChild(button);
-            document.body.appendChild(container);
-
-            console.log('✅ AI 分析按鈕已創建（移動設備固定底部）');
+            console.log('✅ AI 分析按鈕已創建（移動設備佔滿整行，置於底部）');
 
         } else {
-            // === 桌面設備：加到控制面板 ===
-            const regretButton = Array.from(document.querySelectorAll('button')).find(btn =>
-                btn.textContent.includes('悔棋') || btn.textContent.includes('undo')
-            );
+            // === 桌面設備：正常大小 ===
 
-            let buttonContainer = regretButton ? regretButton.parentElement :
-                document.getElementById('controls') ||
-                document.body;
-
-            const button = document.createElement('button');
-            button.id = 'ai-analyze-btn';
-            button.textContent = '🤖 AI 分析';
-
-            // 🔥 複製其他按鈕的樣式
             if (regretButton) {
                 button.className = regretButton.className;
                 button.style.cssText = regretButton.style.cssText;
+                button.style.backgroundColor = '#4CAF50';
             } else {
                 button.style.cssText = `
                 padding: 12px 20px;
@@ -16694,17 +16689,18 @@
                 if (!button.disabled) button.style.backgroundColor = '#4CAF50';
             });
 
-            // 點擊事件
-            button.onclick = () => {
-                if (aiAnalysisManager) {
-                    aiAnalysisManager.analyzePosition();
-                }
-            };
-
-            buttonContainer.appendChild(button);
-
-            console.log('✅ AI 分析按鈕已創建（桌面設備側邊）');
+            console.log('✅ AI 分析按鈕已創建（桌面設備）');
         }
+
+        // 點擊事件（移動和桌面共用）
+        button.onclick = () => {
+            if (aiAnalysisManager) {
+                aiAnalysisManager.analyzePosition();
+            }
+        };
+
+        // ✅ 關鍵：加到容器的最後面
+        buttonContainer.appendChild(button);
     }
 
     /**
@@ -32957,10 +32953,70 @@
             return dialog;
         }
 
+        // 顯示提示對話框（已安裝或不支援）
+        function showInfoDialog(title, message) {
+            const dialog = document.createElement('div');
+            dialog.id = 'install-info-dialog';
+            dialog.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-family: 'Microsoft JhengHei', sans-serif;
+        `;
+
+            const dialogContent = document.createElement('div');
+            dialogContent.style.cssText = `
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        `;
+
+            dialogContent.innerHTML = `
+            <h3 style="margin-bottom: 20px; color: #333;">${title}</h3>
+            <div style="margin-bottom: 25px; font-size: 16px; line-height: 1.6; color: #555;">
+                <p>${message}</p>
+            </div>
+            <button id="info-close-btn" style="
+                background: #4CAF50;
+                color: white;
+                padding: 12px 25px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+            ">我知道了</button>
+        `;
+
+            dialog.appendChild(dialogContent);
+            document.body.appendChild(dialog);
+
+            document.getElementById('info-close-btn').addEventListener('click', () => {
+                dialog.remove();
+            });
+
+            dialog.addEventListener('click', (e) => {
+                if (e.target === dialog) {
+                    dialog.remove();
+                }
+            });
+        }
+
         // 觸發安裝提示
         async function triggerInstall() {
             if (!deferredPrompt) {
-                alert('抱歉，您的瀏覽器不支援安裝功能，或者已經安裝過了！');
+                showInfoDialog('💡 提示', '您的裝置已經安裝過此應用，或瀏覽器不支援安裝功能！');
                 closeInstallDialog();
                 return;
             }
@@ -33018,11 +33074,11 @@
                 const referenceButton = feedbackButton || regretButton;
                 installButton.className = referenceButton.className;
                 installButton.style.cssText = referenceButton.style.cssText;
-                installButton.style.backgroundColor = '#2196F3';
+                installButton.style.backgroundColor = '#4CAF50';
             } else {
                 installButton.style.cssText = `
                 padding: 12px 20px;
-                background-color: #2196F3;
+                background-color: #4CAF50;
                 color: white;
                 border: none;
                 border-radius: 5px;
