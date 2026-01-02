@@ -452,7 +452,7 @@
                     width: calc(100vw - 60px) !important;
                     max-width: 350px !important;
                     grid-template-columns: repeat(9, 1fr) !important;
-                    margin: 0 auto 0px auto !important;  /* ← 改這裡，把 2px 改成 0px */
+                    margin: 0 auto 0px auto !important;
                     font-size: 13px !important;
                     padding: 0;
                 }
@@ -461,13 +461,11 @@
                     width: calc(100vw - 60px) !important;
                     max-width: 350px !important;
                     grid-template-columns: repeat(9, 1fr) !important;
-                    margin: 0px auto 8px auto !important;  /* ← 改這裡，把 2px 改成 0px */
+                    margin: 0px auto 8px auto !important;
                     font-size: 13px !important;
                     padding: 0;
                 }
             }
-
-
 
             #chess-board {
                 width: calc(100vw - 65px) !important;
@@ -495,16 +493,15 @@
                 max-height: 38px;
             }
 
-
-
             .controls {
                 width: 100% !important;
                 max-width: 350px !important;
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
                 gap: 8px !important;
-                padding: 10px 5px !important;
-                margin: 8px 0 !important;
+                padding: 10px 5px 20px 5px !important; /* 🔥 改這裡：加大底部 padding */
+                margin: 8px 0 0 0 !important; /* 🔥 改這裡：移除底部 margin */
+                flex-shrink: 0 !important; /* 🔥 加這行：防止被壓縮 */
             }
 
             .controls button {
@@ -513,6 +510,8 @@
                 font-size: 14px !important;
                 margin: 0 !important;
                 white-space: nowrap;
+                -webkit-tap-highlight-color: transparent; /* 🔥 加這行：移除 iOS 點擊陰影 */
+                touch-action: manipulation; /* 🔥 加這行：防止雙擊縮放 */
             }
 
             #loadFile {
@@ -538,7 +537,6 @@
             .selected {
                 background-color: rgba(0, 255, 0, 0.4) !important;
             }
-        }
 
         @media (max-width: 360px) {
             #chess-board {
@@ -677,6 +675,8 @@
         <div id="move-list"></div>
     </div>
 </div>
+
+
 
 <script>
     const gameState = {
@@ -32346,7 +32346,7 @@
         </div>
 
         <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border-radius: 8px; border: 2px solid #ffc107;">
-            <h4 style="color: #333; margin-top: 0;">🧠 覆盤分析</h4>
+            <h4 style="color: #333; margin-top: 0;">🧠 覆盤分析 <span style="color: #ff6b6b; font-size: 14px;">【僅限電腦版】</span></h4>
             <p style="line-height: 1.8; color: #555; margin-bottom: 10px;">
                 <em>智能棋譜分析功能</em>
             </p>
@@ -32358,11 +32358,14 @@
             <p style="line-height: 1.8; color: #d32f2f; font-weight: bold; margin-bottom: 5px;">
                 ⚠️ 重要提醒：
             </p>
-            <ul style="line-height: 1.8; color: #d32f2f; margin-bottom: 0;">
+            <ul style="line-height: 1.8; color: #d32f2f; margin-bottom: 10px;">
                 <li>覆盤分析結果可能有誤，若出現劇烈波動時有可能是引擎問題，還煩請各位玩家見諒</li>
                 <li>AI分析需要較長時間，您可以切換到其他分頁處理其他事務，不需等待</li>
-                <li>AI分析並不是絕對，有可能存在比AI解法更佳的走法，ai推薦之走法僅供參考</li>
+                <li>AI分析並不是絕對，有可能存在比AI解法更佳的走法，AI推薦之走法僅供參考</li>
             </ul>
+            <p style="line-height: 1.8; color: #ff6b6b; font-weight: bold; margin-bottom: 0;">
+                📱 由於手機CPU運算能力較弱，無法提供高質量的覆盤分析，因此本功能僅限電腦版使用。
+            </p>
         </div>
 
         <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
@@ -32379,16 +32382,48 @@
         </div>
 
         <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <h4 style="color: #333; margin-top: 0;">🤖 AI對戰</h4>
+            <h4 style="color: #333; margin-top: 0;">🤖 AI對戰 <span style="color: #ff6b6b; font-size: 14px;">【電腦版與Android限定】</span></h4>
             <p style="line-height: 1.8; color: #555; margin-bottom: 0;">
                 挑戰不同難度等級的AI，直接與電腦對弈，從入門到高手，循序漸進提升棋藝。
             </p>
         </div>
 
         <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <h4 style="color: #333; margin-top: 0;">📊 AI分析</h4>
+            <h4 style="color: #333; margin-top: 0;">📊 AI分析 <span style="color: #ff6b6b; font-size: 14px;">【電腦版與Android限定】</span></h4>
             <p style="line-height: 1.8; color: #555; margin-bottom: 0;">
                 如同專業教練般協助您分析局面，即時提供當前最佳走法建議，是學習和提高的絕佳工具。
+            </p>
+        </div>
+
+        <div style="margin: 20px 0; padding: 20px; background: #ffe0e0; border-radius: 8px; border: 3px solid #ff5252;">
+            <h4 style="color: #c62828; margin-top: 0;">🍎 iOS系統使用限制說明</h4>
+            <p style="line-height: 1.8; color: #555; margin-bottom: 10px;">
+                <strong>致iOS用戶（iPhone、iPad）的深深歉意：</strong>
+            </p>
+            <p style="line-height: 1.8; color: #555; margin-bottom: 10px;">
+                由於本平台採用本地AI運算技術，而iOS系統的瀏覽器安全政策限制了WebAssembly的本地運算能力，
+                導致以下功能在iOS設備上<strong>無法使用</strong>：
+            </p>
+            <ul style="line-height: 1.8; color: #d32f2f; margin-bottom: 10px; font-weight: bold;">
+                <li>🤖 AI對戰功能</li>
+                <li>📊 AI分析功能</li>
+                <li>🧠 覆盤分析功能</li>
+            </ul>
+            <p style="line-height: 1.8; color: #555; margin-bottom: 10px;">
+                <strong>可正常使用的功能：</strong>
+            </p>
+            <ul style="line-height: 1.8; color: #555; margin-bottom: 10px;">
+                <li>雙人對戰模式</li>
+                <li>棋鐘功能</li>
+                <li>自訂棋盤</li>
+                <li>儲存/載入局面</li>
+                <li>開局殘局庫（純棋譜功能，不含AI解析）</li>
+                <li>拍照識別</li>
+            </ul>
+            <p style="line-height: 1.8; color: #555; margin-bottom: 0;">
+                我們對造成iOS用戶的不便深感抱歉。這是系統層級的技術限制，並非遊戲本身的問題。
+                建議iOS用戶可使用電腦版或Android設備體驗完整功能。我們將持續關注iOS系統的技術發展，
+                期待未來能為iOS用戶提供完整的AI功能。
             </p>
         </div>
 
@@ -32426,7 +32461,7 @@
             </p>
             <ul style="line-height: 1.8; color: #555; margin-bottom: 10px;">
                 <li>江湖殘局與疑難雜症題目均取材自 <a href="https://www.youtube.com/@CongKuanxiangqi" target="_blank" style="color: #4285f4; text-decoration: none;">从寬象棋 YouTube 頻道</a></li>
-                <li>如遇到不會解的局面，歡迎多多利用 AI 分析功能輔助學習</li>
+                <li>如遇到不會解的局面，歡迎多多利用 AI 分析功能輔助學習（電腦版與Android限定）</li>
                 <li>或移步觀看 <a href="https://www.youtube.com/@CongKuanxiangqi" target="_blank" style="color: #4285f4; text-decoration: none;">从寬象棋頻道</a> 的詳細講解影片</li>
             </ul>
             <p style="line-height: 1.8; color: #888; font-size: 13px; margin-bottom: 0;">
@@ -32443,6 +32478,9 @@
                 <li><strong>第一步：</strong>直接重新啟動遊戲軟體（按F5或重新整理按鈕），基本上就能夠正常使用</li>
                 <li><strong>若經過幾次重試後仍無法正常使用：</strong>請透過問題回報功能填寫回報表單，我們會盡快處理</li>
             </ul>
+            <p style="line-height: 1.8; color: #ff6b6b; font-weight: bold; margin-bottom: 0;">
+                📱 <strong>iOS用戶請注意：</strong>若您使用iPhone或iPad，AI相關功能因系統限制無法使用，這是正常現象，並非故障。
+            </p>
         </div>
 
         <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
