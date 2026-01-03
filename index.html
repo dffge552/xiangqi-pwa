@@ -636,6 +636,8 @@
                 margin: 0 !important;
             }
         }
+        }
+
     </style>
 </head>
 <body>
@@ -25360,7 +25362,6 @@
     }
 
 
-    // 在自定義棋盤按鈕後面添加拍照識別按鈕
     function addPhotoRecognitionButton() {
         const regretButton = Array.from(document.querySelectorAll('button')).find(btn =>
             btn.textContent.includes('悔棋') || btn.textContent.includes('undo')
@@ -25392,6 +25393,21 @@
 
         photoButton.addEventListener('click', function() {
             if (!photoInstance) {
+                // 🔥 開啟前先重置全局變量
+                console.log('🔄 開啟拍照識別，重置全局變量...');
+
+                window.isOnlineMode = false;
+                window.perspectiveMatrix = null;
+                window.originalCorners = null;
+                window.originalCanvasSize = null;
+                window.originalFullCanvas = null;
+                window.correctedFullCanvas = null;
+                window.corners = [];
+                window.boardBoundingBox = null;
+
+                console.log('✅ 全局變量已重置');
+
+                // 創建界面
                 photoInstance = createPhotoRecognitionInterface();
                 photoButton.textContent = '關閉識別';
                 photoButton.style.backgroundColor = '#dc3545';
@@ -25405,6 +25421,18 @@
                                     photoButton.textContent = '📸 拍照識別';
                                     photoButton.style.backgroundColor = '#17a2b8';
                                     observer.disconnect();
+
+                                    // 🔥 關閉時也重置
+                                    console.log('🔄 關閉拍照識別，重置全局變量...');
+                                    window.isOnlineMode = false;
+                                    window.perspectiveMatrix = null;
+                                    window.originalCorners = null;
+                                    window.originalCanvasSize = null;
+                                    window.originalFullCanvas = null;
+                                    window.correctedFullCanvas = null;
+                                    window.corners = [];
+                                    window.boardBoundingBox = null;
+                                    console.log('✅ 全局變量已重置');
                                 }
                             });
                         }
@@ -25883,11 +25911,11 @@
             createVirtualChessBoard();
 
 
-                statusDisplay.textContent = '✅ FEN 碼已成功解析並顯示';
-                statusDisplay.style.background = '#d4edda';
-                statusDisplay.style.color = '#155724';
-                return true;
-            }
+            statusDisplay.textContent = '✅ FEN 碼已成功解析並顯示';
+            statusDisplay.style.background = '#d4edda';
+            statusDisplay.style.color = '#155724';
+            return true;
+        }
 
 
         // 🔥 應用 FEN 按鈕
@@ -32792,14 +32820,21 @@
         initGameInstructionsSystem();
     }
 
-    // PWA 安裝系統（Android 專用）
+    // PWA 安裝系統（修正版）
     (function() {
         let deferredPrompt = null;
         let installDialogInstance = null;
+        let promptEventReceived = false; // 新增：追蹤事件是否觸發過
 
         // 檢測是否為 iOS 裝置
         function isIOS() {
             return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        }
+
+        // 檢查是否已安裝
+        function isInstalled() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone === true;
         }
 
         // 主要安裝提示函數（Android/電腦版）
@@ -33051,27 +33086,50 @@
             });
         }
 
-        // 觸發安裝提示
+        // 🔥 修正版：觸發安裝提示
         async function triggerInstall() {
-            if (!deferredPrompt) {
-                showInfoDialog('💡 提示', '您的裝置已經安裝過此應用，或瀏覽器不支援安裝功能！');
+            // 先檢查是否真的已安裝
+            if (isInstalled()) {
+                showInfoDialog('✅ 已安裝', '此應用已經安裝在您的裝置上了！');
                 closeInstallDialog();
                 return;
             }
 
-            deferredPrompt.prompt();
-
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`安裝結果: ${outcome}`);
-
-            if (outcome === 'accepted') {
-                console.log('用戶接受安裝');
-            } else {
-                console.log('用戶拒絕安裝');
+            // 如果沒有 deferredPrompt，給更明確的提示
+            if (!deferredPrompt) {
+                if (promptEventReceived) {
+                    // 事件觸發過但已用掉
+                    showInfoDialog('💡 提示', '安裝提示已使用過，請重新整理頁面後再試！');
+                } else {
+                    // 事件從未觸發 - 可能是瀏覽器限制
+                    showInfoDialog(
+                        '⚠️ 無法自動安裝',
+                        '您的瀏覽器可能不支援自動安裝，或需要更多互動後才能安裝。<br><br>請嘗試：<br>1. 在頁面多瀏覽一下<br>2. 重新整理後再試<br>3. 使用 Chrome 瀏覽器'
+                    );
+                }
+                closeInstallDialog();
+                return;
             }
 
-            deferredPrompt = null;
-            closeInstallDialog();
+            // 正常安裝流程
+            try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`安裝結果: ${outcome}`);
+
+                if (outcome === 'accepted') {
+                    console.log('用戶接受安裝');
+                } else {
+                    console.log('用戶拒絕安裝');
+                }
+
+                deferredPrompt = null;
+                closeInstallDialog();
+            } catch (error) {
+                console.error('安裝錯誤:', error);
+                showInfoDialog('❌ 安裝失敗', '安裝過程發生錯誤，請稍後再試！');
+                closeInstallDialog();
+            }
         }
 
         // 關閉安裝對話框
@@ -33085,6 +33143,12 @@
 
         // 創建安裝按鈕
         function addInstallButton() {
+            // 如果已安裝，不顯示按鈕
+            if (isInstalled()) {
+                console.log('應用已安裝，不顯示安裝按鈕');
+                return;
+            }
+
             const feedbackButton = Array.from(document.querySelectorAll('button')).find(btn =>
                 btn.textContent.includes('問題回報')
             );
@@ -33106,7 +33170,7 @@
                 installButton.textContent = '📱 安裝應用';
             }
 
-            installButton.style.display = 'inline-block'; // iOS 也顯示按鈕
+            installButton.style.display = 'inline-block';
 
             if (feedbackButton || regretButton) {
                 const referenceButton = feedbackButton || regretButton;
@@ -33129,7 +33193,6 @@
 
             installButton.addEventListener('click', function() {
                 if (!installDialogInstance) {
-                    // iOS 顯示說明對話框
                     if (isIOS()) {
                         installDialogInstance = showIOSInstructionDialog();
                     } else {
@@ -33145,9 +33208,10 @@
 
         // 監聽安裝提示事件（僅 Android/電腦）
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('偵測到可安裝 PWA');
+            console.log('✅ 偵測到可安裝 PWA');
             e.preventDefault();
             deferredPrompt = e;
+            promptEventReceived = true; // 標記事件已觸發
 
             const installButton = document.getElementById('pwa-install-button');
             if (installButton && !isIOS()) {
@@ -33157,7 +33221,7 @@
 
         // 監聽安裝成功事件
         window.addEventListener('appinstalled', () => {
-            console.log('PWA 安裝成功！');
+            console.log('✅ PWA 安裝成功！');
             deferredPrompt = null;
 
             const installButton = document.getElementById('pwa-install-button');
@@ -33172,13 +33236,25 @@
 
         // 初始化安裝系統
         function initInstallSystem() {
-            if (window.matchMedia('(display-mode: standalone)').matches) {
-                console.log('應用已在獨立模式下運行（已安裝）');
+            if (isInstalled()) {
+                console.log('✅ 應用已在獨立模式下運行（已安裝）');
                 return;
             }
 
             addInstallButton();
-            console.log('PWA 安裝系統已初始化');
+            console.log('✅ PWA 安裝系統已初始化');
+
+            // 🔥 新增：延遲檢查 beforeinstallprompt 是否觸發
+            setTimeout(() => {
+                if (!promptEventReceived && !isIOS()) {
+                    console.warn('⚠️ beforeinstallprompt 事件未觸發，可能需要滿足以下條件：');
+                    console.warn('1. 使用 HTTPS');
+                    console.warn('2. 有有效的 manifest.json');
+                    console.warn('3. 註冊了 Service Worker');
+                    console.warn('4. 用戶與頁面有互動');
+                    console.warn('5. 未曾安裝過或已解除安裝');
+                }
+            }, 3000);
         }
 
         // 執行初始化
@@ -33188,7 +33264,6 @@
             initInstallSystem();
         }
     })();
-
 
     // ==================== 遊戲設置系統 ====================
 
