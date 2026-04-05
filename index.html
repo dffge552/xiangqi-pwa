@@ -26710,9 +26710,7 @@
 
         const imageContainer = document.createElement('div');
         imageContainer.style.cssText = `
-    flex: 1;
-    min-height: 350px;
-    max-height: 500px;
+    min-height: 120px;
     background: #f8f9fa;
     border: 2px dashed #ddd;
     border-radius: 8px;
@@ -26720,7 +26718,6 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: hidden;
 `;
         imageContainer.setAttribute('tabindex', '0');
 
@@ -26729,18 +26726,19 @@
         uploadPrompt.style.cssText = `
     text-align: center;
     color: #666;
+    padding: 5px;
 `;
         uploadPrompt.innerHTML = `
-    <div style="font-size: 48px; margin-bottom: 20px;">📷</div>
-    <div style="font-size: 18px; margin-bottom: 10px;">上傳或拍攝棋盤照片</div>
-    <div style="font-size: 14px; color: #999; margin-bottom: 15px;">支援 JPG、PNG 格式</div>
+    <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+    <div style="font-size: 14px; margin-bottom: 6px;">上傳或拍攝棋盤照片</div>
+    <div style="font-size: 12px; color: #999; margin-bottom: 8px;">支援 JPG、PNG 格式</div>
     <div style="
         display: inline-block;
-        padding: 12px 24px;
+        padding: 5px 12px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-radius: 8px;
-        font-size: 14px;
+        font-size: 11px;
         font-weight: bold;
         box-shadow: 0 4px 15px rgba(102,126,234,0.3);
         animation: pulse 2s infinite;
@@ -26834,46 +26832,49 @@
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    originalImage = img;
+                    showCropInterface(img, (croppedCanvas) => {
+                        const croppedImg = new Image();
+                        croppedImg.onload = () => {
+                            originalImage = croppedImg;
 
-                    // 创建原始全尺寸 canvas
-                    const originalFullCanvas = document.createElement('canvas');
-                    originalFullCanvas.width = img.naturalWidth;
-                    originalFullCanvas.height = img.naturalHeight;
-                    const fullCtx = originalFullCanvas.getContext('2d');
-                    fullCtx.drawImage(img, 0, 0);
-                    window.originalFullCanvas = originalFullCanvas;
-                    console.log('✅ 拍照图片已载入:', originalFullCanvas.width, 'x', originalFullCanvas.height);
+                            const originalFullCanvas = document.createElement('canvas');
+                            originalFullCanvas.width = croppedCanvas.width;
+                            originalFullCanvas.height = croppedCanvas.height;
+                            const fullCtx = originalFullCanvas.getContext('2d');
+                            fullCtx.drawImage(croppedCanvas, 0, 0);
+                            window.originalFullCanvas = originalFullCanvas;
+                            console.log('✅ 拍照圖片已載入:', originalFullCanvas.width, 'x', originalFullCanvas.height);
 
-                    // 设置显示 canvas 尺寸
-                    const maxWidth = imageContainer.clientWidth - 40;
-                    const maxHeight = imageContainer.clientHeight - 40;
-                    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+                            const maxWidth = imageContainer.clientWidth - 40;
+                            const maxHeight = imageContainer.clientHeight - 40;
+                            const scale = Math.min(maxWidth / croppedImg.width, maxHeight / croppedImg.height, 1);
 
-                    canvas.width = img.width * scale;
-                    canvas.height = img.height * scale;
+                            canvas.width = croppedImg.width * scale;
+                            canvas.height = croppedImg.height * scale;
 
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(croppedImg, 0, 0, canvas.width, canvas.height);
 
-                    // 显示 canvas
-                    uploadPrompt.style.display = 'none';
-                    canvas.style.display = 'block';
-                    uploadBtn.style.display = 'none';
-                    cameraBtn.style.display = 'none';  // 隐藏拍照按钮
-                    resetBtn.style.display = 'block';
-                    undoBtn.style.display = 'block';
+                            uploadPrompt.style.display = 'none';
+                            uploadBtn.style.display = 'none';
+                            cameraBtn.style.display = 'none';
+                            resetBtn.style.display = 'block';
+                            undoBtn.style.display = 'block';
 
-                    // 显示识别方式选择
-                    currentStep = 1;
-                    updateStepIndicator();
-                    showRecognitionChoice();
+                            showFullscreenCanvas(croppedImg);
 
-                    statusDisplay.textContent = '✅ 照片已載入！請選擇識別方式';
-                    statusDisplay.style.background = '#d4edda';
-                    statusDisplay.style.color = '#155724';
+                            currentStep = 1;
+                            updateStepIndicator();
+                            showRecognitionChoice();
 
-                    console.log('✅ 拍照功能完成');
+                            statusDisplay.textContent = '✅ 照片已載入！請選擇識別方式';
+                            statusDisplay.style.background = '#d4edda';
+                            statusDisplay.style.color = '#155724';
+
+                            console.log('✅ 拍照功能完成');
+                        };
+                        croppedImg.src = croppedCanvas.toDataURL();
+                    });
                 };
                 img.src = event.target.result;
             };
@@ -26934,20 +26935,22 @@
                 // 回退角點標註（透視校正前）
                 corners.pop();
 
-                // 重繪圖片
+                const currentW = canvas.width;
+                const currentH = canvas.height;
                 const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, currentW, currentH);
+                canvas.width = currentW;
+                canvas.height = currentH;
+                ctx.drawImage(originalImage, 0, 0, currentW, currentH);
 
-                // 重繪剩餘的角點
                 corners.forEach((corner, i) => {
                     ctx.fillStyle = '#ff0000';
                     ctx.beginPath();
-                    ctx.arc(corner.x, corner.y, 8, 0, Math.PI * 2);
+                    ctx.arc(corner.x, corner.y, 20, 0, Math.PI * 2);
                     ctx.fill();
 
                     ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 14px Arial';
+                    ctx.font = 'bold 24px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(i + 1, corner.x, corner.y);
@@ -27023,6 +27026,388 @@
         let correctedFullCanvas = null;     // 🔥 新增
         let corners = [];
         let pawns = [];
+
+
+        function showCropInterface(img, onConfirm) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.92);
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        overflow-y: auto;
+        padding: 10px 0 20px 0;
+        box-sizing: border-box;
+    `;
+
+            const hint = document.createElement('div');
+            hint.style.cssText = `
+        color: #fff;
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        background: rgba(255,165,0,0.85);
+        padding: 8px 24px;
+        border-radius: 20px;
+        text-align: center;
+    `;
+            hint.textContent = '拖拉選取要保留的區域，或直接跳過';
+
+            // 計算顯示尺寸
+            const maxW = window.innerWidth - 20;
+            const maxH = window.innerHeight - 130;
+            const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+            const dispW = Math.round(img.naturalWidth * scale);
+            const dispH = Math.round(img.naturalHeight * scale);
+
+            // 容器（相對定位，用來疊加 canvas 和選取框）
+            const canvasWrap = document.createElement('div');
+            canvasWrap.style.cssText = `
+        position: relative;
+        width: ${dispW}px;
+        height: ${dispH}px;
+        cursor: crosshair;
+        flex-shrink: 0;
+    `;
+
+            // 底圖 canvas
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = dispW;
+            cropCanvas.height = dispH;
+            cropCanvas.style.cssText = `
+        display: block;
+        border: 2px solid #fff;
+    `;
+            const cropCtx = cropCanvas.getContext('2d');
+            cropCtx.drawImage(img, 0, 0, dispW, dispH);
+
+            // 選取框 overlay canvas
+            const selCanvas = document.createElement('canvas');
+            selCanvas.width = dispW;
+            selCanvas.height = dispH;
+            selCanvas.style.cssText = `
+        position: absolute;
+        top: 0; left: 0;
+        cursor: crosshair;
+    `;
+            const selCtx = selCanvas.getContext('2d');
+
+            canvasWrap.appendChild(cropCanvas);
+            canvasWrap.appendChild(selCanvas);
+
+            // 按鈕列
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = `
+        display: flex;
+        gap: 16px;
+        margin-top: 14px;
+        flex-shrink: 0;
+    `;
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '✂️ 確認裁切';
+            confirmBtn.style.cssText = `
+        padding: 12px 28px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        opacity: 0.4;
+        pointer-events: none;
+    `;
+
+            const skipBtn = document.createElement('button');
+            skipBtn.textContent = '⏭️ 跳過直接使用';
+            skipBtn.style.cssText = `
+        padding: 12px 28px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    `;
+
+            btnRow.appendChild(confirmBtn);
+            btnRow.appendChild(skipBtn);
+
+            overlay.appendChild(hint);
+            overlay.appendChild(canvasWrap);
+            overlay.appendChild(btnRow);
+            document.body.appendChild(overlay);
+
+            // 選取框邏輯
+            let isDrawing = false;
+            let startX = 0, startY = 0;
+            let selRect = null; // { x, y, w, h } 顯示座標
+
+            function drawSelection() {
+                selCtx.clearRect(0, 0, dispW, dispH);
+                if (!selRect || selRect.w === 0 || selRect.h === 0) return;
+
+                // 暗化外部
+                selCtx.fillStyle = 'rgba(0,0,0,0.5)';
+                selCtx.fillRect(0, 0, dispW, dispH);
+
+                // 清除選取區
+                selCtx.clearRect(selRect.x, selRect.y, selRect.w, selRect.h);
+
+                // 選取框邊線
+                selCtx.strokeStyle = '#00e5ff';
+                selCtx.lineWidth = 2;
+                selCtx.setLineDash([6, 3]);
+                selCtx.strokeRect(selRect.x, selRect.y, selRect.w, selRect.h);
+
+                // 四角標記
+                const cs = 12;
+                selCtx.strokeStyle = '#fff';
+                selCtx.lineWidth = 3;
+                selCtx.setLineDash([]);
+                const corners2 = [
+                    [selRect.x, selRect.y],
+                    [selRect.x + selRect.w, selRect.y],
+                    [selRect.x + selRect.w, selRect.y + selRect.h],
+                    [selRect.x, selRect.y + selRect.h]
+                ];
+                corners2.forEach(([cx, cy]) => {
+                    selCtx.beginPath();
+                    selCtx.moveTo(cx - cs, cy); selCtx.lineTo(cx + cs, cy);
+                    selCtx.moveTo(cx, cy - cs); selCtx.lineTo(cx, cy + cs);
+                    selCtx.stroke();
+                });
+            }
+
+            function getPos(e) {
+                const rect = selCanvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: Math.max(0, Math.min(dispW, clientX - rect.left)),
+                    y: Math.max(0, Math.min(dispH, clientY - rect.top))
+                };
+            }
+
+            function onStart(e) {
+                e.preventDefault();
+                const pos = getPos(e);
+                isDrawing = true;
+                startX = pos.x;
+                startY = pos.y;
+                selRect = null;
+                confirmBtn.style.opacity = '0.4';
+                confirmBtn.style.pointerEvents = 'none';
+            }
+
+            function onMove(e) {
+                e.preventDefault();
+                if (!isDrawing) return;
+                const pos = getPos(e);
+                const x = Math.min(startX, pos.x);
+                const y = Math.min(startY, pos.y);
+                const w = Math.abs(pos.x - startX);
+                const h = Math.abs(pos.y - startY);
+                selRect = { x, y, w, h };
+                drawSelection();
+            }
+
+            function onEnd(e) {
+                e.preventDefault();
+                isDrawing = false;
+                if (selRect && selRect.w > 10 && selRect.h > 10) {
+                    confirmBtn.style.opacity = '1';
+                    confirmBtn.style.pointerEvents = 'auto';
+                }
+            }
+
+            selCanvas.addEventListener('mousedown', onStart);
+            selCanvas.addEventListener('mousemove', onMove);
+            selCanvas.addEventListener('mouseup', onEnd);
+            selCanvas.addEventListener('touchstart', onStart, { passive: false });
+            selCanvas.addEventListener('touchmove', onMove, { passive: false });
+            selCanvas.addEventListener('touchend', onEnd, { passive: false });
+
+            // 確認裁切
+            confirmBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+
+                // 換算回原始圖片座標
+                const origX = Math.round(selRect.x / scale);
+                const origY = Math.round(selRect.y / scale);
+                const origW = Math.round(selRect.w / scale);
+                const origH = Math.round(selRect.h / scale);
+
+                // 裁切原始全尺寸圖
+                const resultCanvas = document.createElement('canvas');
+                resultCanvas.width = origW;
+                resultCanvas.height = origH;
+                const resultCtx = resultCanvas.getContext('2d');
+                resultCtx.drawImage(img, origX, origY, origW, origH, 0, 0, origW, origH);
+
+                onConfirm(resultCanvas);
+            });
+
+            // 跳過
+            skipBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+
+                // 直接用原圖
+                const resultCanvas = document.createElement('canvas');
+                resultCanvas.width = img.naturalWidth;
+                resultCanvas.height = img.naturalHeight;
+                const resultCtx = resultCanvas.getContext('2d');
+                resultCtx.drawImage(img, 0, 0);
+
+                onConfirm(resultCanvas);
+            });
+        }
+
+        function showFullscreenCanvas(img) {
+
+            imageContainer.style.minHeight = '300px';
+            imageContainer.style.maxHeight = '300px';
+            const previewImg = document.createElement('img');
+            previewImg.src = img.src;
+            previewImg.style.cssText = `
+    width: auto;
+    height: 290px;
+    object-fit: contain;
+    border-radius: 6px;
+    opacity: 0.85;
+`;
+            imageContainer.appendChild(previewImg);
+
+            // 改成
+            const fsOverlay = document.createElement('div');
+            fsOverlay.id = 'fs-overlay';
+            fsOverlay.style.cssText = `
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.92);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 20px 0 30px 0;
+    box-sizing: border-box;
+`;
+            // 提示文字
+            const fsHint = document.createElement('div');
+            fsHint.id = 'fs-hint';
+            fsHint.style.cssText = `
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 12px;
+        background: rgba(255,165,0,0.85);
+        padding: 8px 24px;
+        border-radius: 20px;
+    `;
+            fsHint.textContent = '上傳成功，請選擇識別方式';
+
+            // 全螢幕 canvas
+            const maxW = window.innerWidth - 20;
+            const maxH = window.innerHeight - 100;
+            const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+
+            canvas.width = img.naturalWidth * scale;
+            canvas.height = img.naturalHeight * scale;
+            canvas.style.cssText = `
+    display: block;
+    cursor: crosshair;
+    border: 2px solid #fff;
+    max-width: calc(100vw - 20px);
+`;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // 關閉按鈕
+            const fsClose = document.createElement('button');
+            fsClose.textContent = '✕ 關閉';
+            fsClose.style.cssText = `
+        margin-top: 14px;
+        padding: 8px 28px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+    `;
+            fsClose.addEventListener('click', () => {
+                document.body.removeChild(fsOverlay);
+                canvas.style.display = 'none';
+            });
+
+            fsOverlay.appendChild(fsHint);
+            fsOverlay.appendChild(canvas);
+            fsOverlay.appendChild(fsClose);
+            document.body.appendChild(fsOverlay);
+
+            // 在 fsOverlay.appendChild(canvas) 後面加
+            const fsBtnRow = document.createElement('div');
+            fsBtnRow.style.cssText = `
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+`;
+
+            const fsUndoBtn = document.createElement('button');
+            fsUndoBtn.innerHTML = '↶ 回退一步';
+            fsUndoBtn.style.cssText = `
+    padding: 12px 28px;
+    background: #ffc107;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+`;
+            fsUndoBtn.addEventListener('click', () => {
+                undoBtn.click(); // 直接觸發原本的 undoBtn
+            });
+
+            const fsResetBtn = document.createElement('button');
+            fsResetBtn.innerHTML = '🔄 重新開始';
+            fsResetBtn.style.cssText = `
+    padding: 12px 28px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+`;
+            fsResetBtn.addEventListener('click', () => {
+                if (window._fsOverlay && document.body.contains(window._fsOverlay)) {
+                    document.body.removeChild(window._fsOverlay);
+                    window._fsOverlay = null;
+                }
+                resetInterface(); // 觸發原本的重置
+            });
+
+            fsBtnRow.appendChild(fsUndoBtn);
+            fsBtnRow.appendChild(fsResetBtn);
+            fsOverlay.appendChild(fsBtnRow);
+
+            // 暴露給其他函數用
+            window._fsOverlay = fsOverlay;
+            window._fsHint = fsHint;
+        }
 
         function showHelpDialog() {
             const helpDialog = document.createElement('div');
@@ -27607,39 +27992,45 @@
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    originalImage = img;
+                    showCropInterface(img, (croppedCanvas) => {
+                        // 裁切（或跳過）後，用 croppedCanvas 建立 originalImage
+                        const croppedImg = new Image();
+                        croppedImg.onload = () => {
+                            originalImage = croppedImg;
 
-                    // 🔥 創建原始全尺寸 canvas
-                    const originalFullCanvas = document.createElement('canvas');
-                    originalFullCanvas.width = img.naturalWidth;
-                    originalFullCanvas.height = img.naturalHeight;
-                    const fullCtx = originalFullCanvas.getContext('2d');
-                    fullCtx.drawImage(img, 0, 0);
-                    window.originalFullCanvas = originalFullCanvas;
-                    console.log('✅ 原始全尺寸 Canvas:', originalFullCanvas.width, 'x', originalFullCanvas.height);
+                            // 建立原始全尺寸 canvas
+                            const originalFullCanvas = document.createElement('canvas');
+                            originalFullCanvas.width = croppedCanvas.width;
+                            originalFullCanvas.height = croppedCanvas.height;
+                            const fullCtx = originalFullCanvas.getContext('2d');
+                            fullCtx.drawImage(croppedCanvas, 0, 0);
+                            window.originalFullCanvas = originalFullCanvas;
+                            console.log('✅ 原始全尺寸 Canvas:', originalFullCanvas.width, 'x', originalFullCanvas.height);
 
-                    // 設置顯示 canvas 尺寸
-                    const maxWidth = imageContainer.clientWidth - 40;
-                    const maxHeight = imageContainer.clientHeight - 40;
-                    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+                            const maxWidth = imageContainer.clientWidth - 40;
+                            const maxHeight = imageContainer.clientHeight - 40;
+                            const scale = Math.min(maxWidth / croppedImg.width, maxHeight / croppedImg.height, 1);
 
-                    canvas.width = img.width * scale;
-                    canvas.height = img.height * scale;
+                            canvas.width = croppedImg.width * scale;
+                            canvas.height = croppedImg.height * scale;
 
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(croppedImg, 0, 0, canvas.width, canvas.height);
 
-                    // 顯示 canvas
-                    uploadPrompt.style.display = 'none';
-                    canvas.style.display = 'block';
-                    uploadBtn.style.display = 'none';
-                    resetBtn.style.display = 'block';
-                    undoBtn.style.display = 'block';
+                            uploadPrompt.style.display = 'none';
+                            uploadBtn.style.display = 'none';
+                            cameraBtn.style.display = 'none';
+                            resetBtn.style.display = 'block';
+                            undoBtn.style.display = 'block';
 
-                    // 🔥 新增：顯示識別方式選擇界面
-                    currentStep = 1;
-                    updateStepIndicator();
-                    showRecognitionChoice();
+                            showFullscreenCanvas(croppedImg);
+
+                            currentStep = 1;
+                            updateStepIndicator();
+                            showRecognitionChoice();
+                        };
+                        croppedImg.src = croppedCanvas.toDataURL();
+                    });
                 };
                 img.src = event.target.result;
             };
@@ -27700,12 +28091,13 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                            // 顯示 canvas
                             uploadPrompt.style.display = 'none';
-                            canvas.style.display = 'block';
                             uploadBtn.style.display = 'none';
+                            cameraBtn.style.display = 'none';
                             resetBtn.style.display = 'block';
                             undoBtn.style.display = 'block';
+
+                            showFullscreenCanvas(img);
 
                             // 🔥 顯示識別方式選擇界面
                             currentStep = 1;
@@ -27765,6 +28157,9 @@
             statusDisplay.style.color = '#856404';
             statusDisplay.style.border = '2px solid #ffc107';
 
+            // 🔥 新增：更新全螢幕提示
+            if (window._fsHint) window._fsHint.textContent = '請依序點擊棋盤四個角：左上 → 右上 → 右下 → 左下';
+
             // 開始你原本的標註流程
             startCornerAnnotation();
         }
@@ -27801,7 +28196,7 @@
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ff0000';
             ctx.beginPath();
-            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.fillStyle = '#fff';
@@ -27864,107 +28259,91 @@
             }
         }
 
-// 🔥 新增：顯示透視校正選擇界面
         function showPerspectiveCorrectionChoice() {
-            // 移除之前可能存在的選擇按鈕
-            const existingChoice = document.getElementById('perspective-choice');
-            if (existingChoice) existingChoice.remove();
-
-            const choiceContainer = document.createElement('div');
-            choiceContainer.id = 'perspective-choice';
-            choiceContainer.style.cssText = `
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.7);
+        z-index: 999999;
         display: flex;
-        gap: 15px;
-        margin: 15px 0;
-        padding: 15px;
-        background: #fff3cd;
-        border-radius: 8px;
-        border: 2px dashed #ffc107;
+        justify-content: center;
+        align-items: center;
     `;
 
-            const infoText = document.createElement('div');
-            infoText.style.cssText = `
-        flex: 1;
-        font-size: 13px;
-        color: #856404;
-        line-height: 1.5;
-    `;
-            infoText.innerHTML = `
-        <strong>📐 透視校正說明：</strong><br>
-        • <strong>需要校正</strong>：拍攝角度傾斜，棋盤呈梯形<br>
-        • <strong>跳過校正</strong>：已接近正上方俯拍，棋盤是矩形
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        max-width: 420px;
+        width: 90%;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        text-align: center;
     `;
 
-            const btnContainer = document.createElement('div');
-            btnContainer.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+            dialog.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 12px;">📐</div>
+        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">是否需要透視校正？</h3>
+        <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+            • 棋盤看起來是<strong>梯形</strong> → 需要校正<br>
+            • 棋盤看起來是<strong>矩形</strong> → 可跳過
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button id="do-correct-btn" style="
+                padding: 14px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 16px;
+                box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+            ">🔄 執行透視校正</button>
+
+            <button id="skip-correct-btn" style="
+                padding: 14px;
+                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 16px;
+                box-shadow: 0 4px 15px rgba(17,153,142,0.4);
+            ">⏭️ 跳過校正</button>
+        </div>
     `;
 
-            // 執行校正按鈕
-            const correctBtn = document.createElement('button');
-            correctBtn.innerHTML = '🔄 執行透視校正';
-            correctBtn.style.cssText = `
-        padding: 10px 20px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 14px;
-        transition: all 0.2s;
-    `;
-            correctBtn.addEventListener('mouseenter', () => {
-                correctBtn.style.transform = 'translateY(-2px)';
-                correctBtn.style.boxShadow = '0 4px 12px rgba(0,123,255,0.3)';
-            });
-            correctBtn.addEventListener('mouseleave', () => {
-                correctBtn.style.transform = 'none';
-                correctBtn.style.boxShadow = 'none';
-            });
-            correctBtn.addEventListener('click', () => {
-                choiceContainer.remove();
-                performPerspectiveCorrection();
-            });
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
 
-            // 跳過校正按鈕
-            const skipBtn = document.createElement('button');
-            skipBtn.innerHTML = '⏭️ 跳過校正';
-            skipBtn.style.cssText = `
-        padding: 10px 20px;
-        background: #28a745;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 14px;
-        transition: all 0.2s;
-    `;
-            skipBtn.addEventListener('mouseenter', () => {
-                skipBtn.style.transform = 'translateY(-2px)';
-                skipBtn.style.boxShadow = '0 4px 12px rgba(40,167,69,0.3)';
-            });
-            skipBtn.addEventListener('mouseleave', () => {
-                skipBtn.style.transform = 'none';
-                skipBtn.style.boxShadow = 'none';
-            });
-            skipBtn.addEventListener('click', () => {
-                choiceContainer.remove();
-                skipPerspectiveCorrection();
-            });
+            setTimeout(() => {
+                const doBtn = document.getElementById('do-correct-btn');
+                const skipBtn = document.getElementById('skip-correct-btn');
 
-            btnContainer.appendChild(correctBtn);
-            btnContainer.appendChild(skipBtn);
+                if (doBtn) {
+                    doBtn.addEventListener('click', () => {
+                        document.body.removeChild(overlay);
+                        performPerspectiveCorrection();
+                    });
+                }
 
-            choiceContainer.appendChild(infoText);
-            choiceContainer.appendChild(btnContainer);
+                if (skipBtn) {
+                    skipBtn.addEventListener('click', () => {
+                        document.body.removeChild(overlay);
+                        skipPerspectiveCorrection();
+                    });
+                }
 
-            // 插入到圖片容器後面
-            imageContainer.parentNode.insertBefore(choiceContainer, actionButtons);
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) document.body.removeChild(overlay);
+                });
+            }, 50);
         }
+
 
 // 🔥 新增：跳過透視校正，直接進入中兵標註
         function skipPerspectiveCorrection() {
@@ -27986,6 +28365,7 @@
             }, 500);
         }
 
+
         /**
          * 🔥 修正版：透視校正函數
          * 校正後的圖將直接用於 AI 識別，所有後續操作都在校正後的圖上進行
@@ -27996,108 +28376,112 @@
             statusDisplay.style.color = '#004085';
 
             const ctx = canvas.getContext('2d');
-
-            // 添加內邊距
             const padding = 150;
-            const targetWidth = 1620;   // 3倍放大 (540 × 3)
-            const targetHeight = 1800;  // 3倍放大 (600 × 3)
-            const fullWidth = targetWidth + padding * 2;
-            const fullHeight = targetHeight + padding * 2;
 
-            // 創建臨時 canvas
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = fullWidth;
-            tempCanvas.height = fullHeight;
-            const tempCtx = tempCanvas.getContext('2d');
-
-            // 🔥 保存原始角點（在校正前）
             window.originalCorners = JSON.parse(JSON.stringify(corners));
             console.log('✅ 已保存原始角點:', window.originalCorners);
 
-            // 🔥 重要：源座標（原始斜視圖的四角）
+            window.originalCanvasSize = {
+                width: canvas.width,
+                height: canvas.height
+            };
+
+            // 用原始全尺寸圖片做透視變換
+            const srcCanvas = window.originalFullCanvas;
+            const srcCtx = srcCanvas.getContext('2d');
+            const imageData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+
+            // 顯示canvas 到 原始圖片 的縮放比
+            const scaleX = srcCanvas.width / canvas.width;
+            const scaleY = srcCanvas.height / canvas.height;
+
+            // 原始圖片座標的四角
             const srcPoints = [
-                corners[0].x, corners[0].y,  // 左上
-                corners[1].x, corners[1].y,  // 右上
-                corners[2].x, corners[2].y,  // 右下
-                corners[3].x, corners[3].y   // 左下
+                corners[0].originalX, corners[0].originalY,
+                corners[1].originalX, corners[1].originalY,
+                corners[2].originalX, corners[2].originalY,
+                corners[3].originalX, corners[3].originalY
             ];
 
-            // 🔥 重要：目標座標（校正後的標準矩形）
+            // 原始解析度的目標尺寸
+            const origTargetW = Math.round(corners[1].originalX - corners[0].originalX);
+            const origTargetH = Math.round(corners[3].originalY - corners[0].originalY);
+            const origPadding = Math.round(padding * scaleX);
+
+            const origFullW = origTargetW + origPadding * 2;
+            const origFullH = origTargetH + origPadding * 2;
+
             const dstPoints = [
-                padding, padding,                              // 左上
-                padding + targetWidth, padding,                // 右上
-                padding + targetWidth, padding + targetHeight, // 右下
-                padding, padding + targetHeight                // 左下
+                origPadding, origPadding,
+                origPadding + origTargetW, origPadding,
+                origPadding + origTargetW, origPadding + origTargetH,
+                origPadding, origPadding + origTargetH
             ];
 
             console.log('📊 透視變換資訊:');
             console.log('  源四角 (原始圖):', srcPoints);
             console.log('  目標四角 (校正後):', dstPoints);
 
-            // 🔥 計算並保存透視變換矩陣
             window.perspectiveMatrix = getPerspectiveTransform(srcPoints, dstPoints);
-
-            // 🔥 同時保存原始 canvas 尺寸
-            window.originalCanvasSize = {
-                width: canvas.width,
-                height: canvas.height
-            };
-
             console.log('✅ 已保存透視矩陣:', window.perspectiveMatrix);
             console.log('✅ 已保存原始 Canvas 尺寸:', window.originalCanvasSize);
 
-            // 執行透視變換
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const transformedData = tempCtx.createImageData(fullWidth, fullHeight);
-            const srcData = imageData.data;
-            const dstData = transformedData.data;
+            // 在原始解析度做透視變換
+            const origTempCanvas = document.createElement('canvas');
+            origTempCanvas.width = origFullW;
+            origTempCanvas.height = origFullH;
+            const origTempCtx = origTempCanvas.getContext('2d');
+            const transformedData = origTempCtx.createImageData(origFullW, origFullH);
 
-            // 使用雙線性插值
-            for (let y = 0; y < fullHeight; y++) {
-                for (let x = 0; x < fullWidth; x++) {
+            for (let y = 0; y < origFullH; y++) {
+                for (let x = 0; x < origFullW; x++) {
                     const srcCoord = applyPerspectiveTransform(x, y, window.perspectiveMatrix, true);
                     const interpolated = bilinearInterpolation(imageData, srcCoord.x, srcCoord.y);
-
-                    const dstIdx = (y * fullWidth + x) * 4;
-                    dstData[dstIdx] = interpolated.r;
-                    dstData[dstIdx + 1] = interpolated.g;
-                    dstData[dstIdx + 2] = interpolated.b;
-                    dstData[dstIdx + 3] = interpolated.a;
+                    const dstIdx = (y * origFullW + x) * 4;
+                    transformedData.data[dstIdx]     = interpolated.r;
+                    transformedData.data[dstIdx + 1] = interpolated.g;
+                    transformedData.data[dstIdx + 2] = interpolated.b;
+                    transformedData.data[dstIdx + 3] = interpolated.a;
                 }
             }
+            origTempCtx.putImageData(transformedData, 0, 0);
 
-            tempCtx.putImageData(transformedData, 0, 0);
+            // 裁切（原始解析度），只留棋盤 + cropMargin
+            const cropMargin = Math.round(60 * scaleX);
+            const cropX = origPadding - cropMargin;
+            const cropY = origPadding - cropMargin;
+            const cropW = origTargetW + cropMargin * 2;
+            const cropH = origTargetH + cropMargin * 2;
 
-            // 更新主 canvas
-            canvas.width = fullWidth;
-            canvas.height = fullHeight;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(tempCanvas, 0, 0);
+            const croppedCanvas = document.createElement('canvas');
+            croppedCanvas.width = cropW;
+            croppedCanvas.height = cropH;
+            const croppedCtx = croppedCanvas.getContext('2d');
+            croppedCtx.drawImage(origTempCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-            // 更新 originalImage
+            console.log('✅ 裁切完成:', cropW, 'x', cropH, '(原本', origFullW, 'x', origFullH, ')');
+
             originalImage = new Image();
             originalImage.onload = () => {
 
-                // 🔥 新增：保存校正後的全尺寸 canvas
+                // 保存高解析度校正結果給 AI 用
                 const correctedFullCanvas = document.createElement('canvas');
-                correctedFullCanvas.width = fullWidth;  // 620 (540 + 40*2)
-                correctedFullCanvas.height = fullHeight; // 680 (600 + 40*2)
+                correctedFullCanvas.width = cropW;
+                correctedFullCanvas.height = cropH;
                 const corrFullCtx = correctedFullCanvas.getContext('2d');
-                corrFullCtx.drawImage(tempCanvas, 0, 0);
-
+                corrFullCtx.drawImage(croppedCanvas, 0, 0);
                 window.correctedFullCanvas = correctedFullCanvas;
-                console.log('✅ 校正後全尺寸 Canvas:', correctedFullCanvas.width, 'x', correctedFullCanvas.height);
+                console.log('✅ 校正後全尺寸 Canvas (裁切版):', correctedFullCanvas.width, 'x', correctedFullCanvas.height);
 
-                // 更新角點座標（校正後的標準矩形）
+                // 角點更新為裁切後座標（原始解析度）
                 corners = [
-                    { x: padding, y: padding },
-                    { x: padding + targetWidth, y: padding },
-                    { x: padding + targetWidth, y: padding + targetHeight },
-                    { x: padding, y: padding + targetHeight }
+                    { x: cropMargin, y: cropMargin },
+                    { x: cropMargin + origTargetW, y: cropMargin },
+                    { x: cropMargin + origTargetW, y: cropMargin + origTargetH },
+                    { x: cropMargin, y: cropMargin + origTargetH }
                 ];
 
                 console.log('✅ 透視校正完成');
-                console.log('   - Canvas 尺寸:', canvas.width, 'x', canvas.height);
                 console.log('   - 新角點:', corners);
                 console.log('   - 矩陣已保存:', !!window.perspectiveMatrix);
                 console.log('   - 原始角點已保存:', !!window.originalCorners);
@@ -28106,18 +28490,31 @@
                 statusDisplay.style.background = '#d4edda';
                 statusDisplay.style.color = '#155724';
 
+                // 縮放顯示到螢幕
+                if (window._fsOverlay) {
+                    const maxW = window.innerWidth - 20;
+                    const maxH = window.innerHeight - 160;
+                    const scale = Math.min(maxW / originalImage.naturalWidth, maxH / originalImage.naturalHeight);
+
+                    canvas.width = Math.round(originalImage.naturalWidth * scale);
+                    canvas.height = Math.round(originalImage.naturalHeight * scale);
+
+                    const ctx2 = canvas.getContext('2d');
+                    ctx2.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+                }
+
                 setTimeout(() => {
                     currentStep = 2;
                     updateStepIndicator();
-                    statusDisplay.textContent = '請點擊中路的紅兵位置（第5列從下數第3行）';
+                    statusDisplay.textContent = '請點擊中路的紅兵位置（第5列未移動過的中兵位置）';
                     statusDisplay.style.background = '#fff3cd';
                     statusDisplay.style.color = '#856404';
+                    if (window._fsHint) window._fsHint.textContent = '請點擊中路的紅兵位置';
                     startPawnAnnotation();
                 }, 1000);
             };
-            originalImage.src = canvas.toDataURL();
+            originalImage.src = croppedCanvas.toDataURL();
         }
-
 
         /**
          * 🔥 新增: 雙線性插值函數（改善影像品質）
@@ -28356,6 +28753,14 @@
             ctx.fillText('中', canvasX, canvasY);
             canvas.removeEventListener('click', handlePawnClick);
 
+            // 延遲關閉全螢幕，讓使用者看到標記點
+            setTimeout(() => {
+                if (window._fsOverlay && document.body.contains(window._fsOverlay)) {
+                    document.body.removeChild(window._fsOverlay);
+                    window._fsOverlay = null;
+                }
+            }, 800);
+
             currentStep = 3;
             updateStepIndicator();
             statusDisplay.textContent = '✅ 標註完成！準備開始 AI 識別...';
@@ -28554,6 +28959,8 @@
             statusDisplay.style.color = '#856404';
             statusDisplay.style.border = '2px solid #ffc107';
 
+            if (window._fsHint) window._fsHint.textContent = '請依序點擊棋盤四個角：左上 → 右上 → 右下 → 左下';
+
             // 開始四角標註
             startCornerAnnotation();
         }
@@ -28597,12 +29004,12 @@
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
             ctx.beginPath();
-            ctx.arc(canvasX, canvasY, 15, 0, Math.PI * 2);
+            ctx.arc(canvasX, canvasY, 30, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.fillStyle = '#0000ff';
             ctx.beginPath();
-            ctx.arc(canvasX, canvasY, 8, 0, Math.PI * 2);
+            ctx.arc(canvasX, canvasY, 18, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.fillStyle = '#fff';
@@ -28612,6 +29019,14 @@
             ctx.fillText('中', canvasX, canvasY);
 
             canvas.removeEventListener('click', handlePawnClickForOnline);
+
+            // 延遲關閉全螢幕，讓使用者看到標記點
+            setTimeout(() => {
+                if (window._fsOverlay && document.body.contains(window._fsOverlay)) {
+                    document.body.removeChild(window._fsOverlay);
+                    window._fsOverlay = null;
+                }
+            }, 800);
 
             currentStep = 3;
             updateStepIndicator();
@@ -28645,7 +29060,12 @@
                 // 執行識別
                 const detections = await onlineGameModel.detect(sourceCanvas);
 
-                // 🔥 使用四角和中兵進行座標映射
+
+
+// 改成
+                if (!pawns || pawns.length === 0) {
+                    throw new Error('未找到中兵標註位置，請重新標註');
+                }
                 const board = onlineGameModel.detectionsToBoard(detections, pawns[0], window.corners);
 
                 // 生成 FEN
@@ -28697,7 +29117,7 @@
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.6);
-        z-index: 10001;
+        z-index: 999999;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -34713,7 +35133,6 @@
             };
 
             renderBoard();
-            renderCapturedPieces(); // ✅ 新增
             updateMoveDisplay();
             saveToHistory();
         });
